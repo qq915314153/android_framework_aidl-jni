@@ -1,6 +1,45 @@
 记录framework中aidl与jni流程
 
+aidl file list:
+(add file)
+framework/base/core/java/android/os/TestAidl.aidl           ---testaidl接口定义
+framework/base/core/java/android/os/TestAidlService.java    ---aidl实现类testservice,调用jni
+framework/base/core/java/android/os/TestAidlManager.java    ---testservice管理
+(modify file)
+framework/base/core/java/android/app/SystemServiceRegistry.java   ---注册服务
+framework/base/services/java/com/android/server/SystemServer.java ---启动服务
+freamwork/base/Android.mk   ---MK注册
+(client file)
+TestAidl.java     ---调用aidl处
 
-aidl 目录结构:
-framework/base/core/java/android/os/test_aidl.aidl  ---接口定义
-framework/base/core/java/android/os/test_aidl.java  ---接口实现
+jni file list:
+(add file)
+/framework/base/services/core/jni/com_android_server_TestAidlService.cpp   ---由TestAidlService.java调用
+/hardware/libhardware/include/hardware/hw_breath_leds.h         ---hal层头文件
+/hardware/libhardware/modules/hw_breath_leds/hw_breath_leds.c   ---hal层实现
+/hardware/libhardware/modules/hw_breath_leds/Android.mk
+/kernel-3.18/drivers/misc/mediatek/breath_leds/breath_leds.c   ---kernel实现
+/kernel-3.18/drivers/misc/mediatek/breath_leds/Kconfig
+/kernel-3.18/drivers/misc/mediatek/breath_leds/Makefile
+(modify file)
+1.
+device/mediatek/mt6735/init.rc  line705 ++ chmod 0777 /dev/breath_leds# defind device for breath leds
+device/lentek/*/device.mk       line234 ++ PRODUCT_PACKAGES += breath_leds.default
+2.
+/framework/base/services/core/jni/Android.mk line42 ++ $(LOCAL_REL_DIR)/com_android_server_BreathLedsService.cpp \
+/framework/base/services/core/jni/onload.cpp line87++ int register_android_server_BreathLedsService(JNIEnv* env);  
+                                             line121 ++ register_android_server_BreathLedsService(env); 
+/hardware/libhardware/modules/Android.mk ++ hw_breath_leds
+kernel-3.18/arch/arm/configs/*defconfig ++ CONFIG_BREATH_LEDS=y
+kernel-3.18/drivers/misc/mediatek/Konfig ++433 source "drivers/misc/mediatek/breath_leds/Kconfig"
+kernel-3.18/drivers/misc/mediatek/Makefile ++220 obj-$(CONFIG_BREATH_LEDS)   += breath_leds/
+3.
+alps/system/sepolicy/device.te    line8 ++  type breath_leds_device, dev_type;
+alps/system/sepolicy/domain.te    line95 ++ allow domain breath_leds_device:chr_file rw_file_perms;
+                                  line341 ++ #neverallow * default_android_service:service_manager add;
+alps/system/sepolicy/file_contexts  line145 ++ /dev/breath_leds		u:object_r:breath_leds_device:s0
+alps/system/sepolicy/platform_app.te line 54 ++ allow platform_app default_android_service:service_manager find;
+alps/system/sepolicy/system_server.te line443 ++ allow system_server default_android_service:service_manager { add find};
+                                      line539 ++ allow system_server breath_leds_device:chr_file { open read write };
+alps/system/sepolicy/untrusted_app.te line199 ++ allow untrusted_app default_android_service:service_manager find;
+
