@@ -1,6 +1,1 @@
 记录framework中aidl与jni流程
-
-
-aidl 目录结构:
-framework/base/core/java/android/os/test_aidl.aidl  ---接口定义
-framework/base/core/java/android/os/test_aidl.java  ---接口实现
