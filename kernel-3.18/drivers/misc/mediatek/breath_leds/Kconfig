@@ -1,0 +1,3 @@
+config BREATH_LEDS
+	tristate "Breath Leds driver"
+	default y
